@@ -38,7 +38,9 @@ jobs:
           labels: |
             org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
             org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}
-          tags: ${{ inputs.tags }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=pr
 
       - name: Build container image
         id: build
