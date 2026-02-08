@@ -1,0 +1,3 @@
+tests/cloud-init
+tests/keys
+tests/*.qcow2

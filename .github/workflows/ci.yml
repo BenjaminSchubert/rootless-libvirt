@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: 16 0 * * SAT
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          filter: tree:0
+
+      - name: Compute the image namespace and registry
+        id: namespace
+        run: >-
+          echo "image=ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          && echo "registry=ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Extract docker metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5.10.0
+        with:
+          images: ${{ steps.namespace.outputs.image }}
+          labels: |
+            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}
+          tags: ${{ inputs.tags }}
+
+      - name: Build container image
+        id: build
+        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056  # v2.13
+        with:
+          platforms: linux/amd64
+          containerfiles: Containerfile
+          oci: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Test can run non-kvm images
+        run: make test-no-kvm IMAGE=${{ steps.meta.outputs.tags }}
+
+      - name: Add the runner user to the kvm group
+        run: sudo adduser "${USER}" kvm
+
+      - name: Test can run kvm based images
+        run: sg kvm 'sg "${USER}" "make test-kvm IMAGE=${{ steps.meta.outputs.tags }}"'
+
+      - name: Log in to ghcr
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603  # v1.7
+        with:
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+          registry: ${{ steps.namespace.outputs.registry }}
+        if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Push images
+        id: push
+        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c  # v2.8
+        with:
+          tags: ${{ steps.build.outputs.tags }}
+        if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f  # v3.2.0
+        with:
+          subject-name: ${{ steps.namespace.outputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+        if: ${{ github.ref == 'refs/heads/main' }}
