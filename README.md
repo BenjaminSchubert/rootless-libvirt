@@ -56,7 +56,7 @@ podman \
     --name libvirtd-kvm \
     --privileged \
     --userns=keep-id:uid=1000,gid=1000 \
-    --group-add=keep-groups \
+    --group-add=kvm \
     --device /dev/kvm \
     ghcr.io/benjaminschubert/rootless-libvirt
 

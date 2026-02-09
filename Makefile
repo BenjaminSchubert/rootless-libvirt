@@ -19,7 +19,7 @@ test-kvm: tests/original-debian-13.qcow2
 		--name libvirtd-test-kvm \
 		--privileged \
 		--userns=keep-id:uid=1000,gid=1000 \
-		--group-add=keep-groups \
+		--group-add=kvm \
 		--device /dev/kvm \
 		--volume ${WORK_DIR}/tests:/src:O \
 		--workdir /src \
