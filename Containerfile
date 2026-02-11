@@ -13,6 +13,7 @@ RUN apt-get update && \
 
 RUN mkdir -p /etc/qemu && \
     echo "allow virbr0" > /etc/qemu/bridge.conf && \
+    echo "max_core = 0" >> /etc/libvirt/qemu.conf && \
     chmod u+s /usr/lib/qemu/qemu-bridge-helper && \
     ln -s /etc/libvirt/qemu/networks/default.xml /etc/libvirt/qemu/networks/autostart/default.xml
 
