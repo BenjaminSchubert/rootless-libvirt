@@ -24,6 +24,7 @@ test-kvm: tests/original-debian-13.qcow2
 		--volume ${WORK_DIR}/tests:/src:O \
 		--workdir /src \
 		--env ANSIBLE_FORCE_COLOR=1 \
+		--ulimit "core=0:0" \
 		${IMAGE} \
 		bash -c "sudo apt-get update && sudo apt-get install --no-install-recommends --assume-yes ansible python3-lxml && ansible-playbook playbook.yml"
 
