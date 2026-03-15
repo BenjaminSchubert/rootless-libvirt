@@ -4,12 +4,17 @@ RUN apt-get update && \
     apt-get install --assume-yes --no-install-recommends \
         cloud-image-utils \
         libvirt-daemon-system \
+        locales \
         ovmf \
         sudo \
         tini \
         virt-install \
         && \
     rm -rf /var/lib/apt/lists/*
+
+RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure locales && \
+    update-locale LANG=en_US.UTF-8
 
 RUN mkdir -p /etc/qemu && \
     echo "allow virbr0" > /etc/qemu/bridge.conf && \
@@ -25,5 +30,6 @@ RUN useradd -m testuser --groups libvirt && \
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 USER testuser
+ENV LANG en_US.UTF-8
 ENTRYPOINT ["tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["/bin/bash"]
